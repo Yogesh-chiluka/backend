@@ -1,4 +1,5 @@
 import {v2 as cloudinary} from 'cloudinary';
+import exp from 'constants';
 //file Handling
 import fs from 'fs'
 
@@ -30,7 +31,7 @@ const uploadOnCloudinary = async(localFilePath)=>{
 }
 
 
-
+export {uploadOnCloudinary}
 
 
 
