@@ -13,7 +13,7 @@ const generateAccessAndRefreshTokens = async(userId) =>{
         const user= await User.findById(userId)
        
         const accessToken =  user.generateAccessToken()
-        console.log(accessToken)
+       
         const refreshToken = user.generateRefreshToken()
         
         user.refreshtoken = refreshToken
@@ -159,8 +159,8 @@ const logoutUser = asyncHandler(async(req,res) => {
     User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshtoken: undefined
+            $unset: {
+                refreshtoken: 1
             }
         },
         {
@@ -258,6 +258,7 @@ const changeCurrentPassword = asyncHandler(async(req,res) => {
 })
 
 const getCurrentUser = asyncHandler((req, res) => {
+    console.log(req.user)
     return res
     .status(200)
     .json( new ApiResponse(200, req.user, "current user fetched successfully"))
