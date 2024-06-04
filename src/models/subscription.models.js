@@ -1,9 +1,9 @@
 import mongoose, {Schema } from "mongoose";
-import { User } from "./user.models";
+import { User } from "./user.models.js";
 
 
 const subscriptionSchema = new Schema({
-    subscribers:{
+    subscriber:{
         type: Schema.Types.ObjectId, //One who is subscribing
         ref:"User"
     },
@@ -14,4 +14,4 @@ const subscriptionSchema = new Schema({
 },{timestamps: true})
 
 
-export const Subscription = new mongoose.model("Subscriptio",subscriptionSchema)
+export const Subscription = new mongoose.model("Subscription",subscriptionSchema)
