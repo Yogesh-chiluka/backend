@@ -13,24 +13,11 @@ const getVideoComments= asyncHandler(async(req,res) => {
 
     const  skip = (page - 1)*limit;
 
-    const comments = await Comment.aggregate([
-        {
-            $match: {
-                video: new mongoose.Types.ObjectId(videoId)
-            }
-        },
-        {
-            $lookup: {
-                from:"videos",
-                localField: "content",
-                foreignField: "_id",
-                as: "comment"
-            }
-        }
-    ]).skip(skip).limit(limit)
+    const videoComments = await Comment.find({video:videoId}).skip(skip).limit(limit)
+    const totalVideosComments = await Comment.countDocuments({video: videoId});
 
     return res.status(200).json(
-        new ApiResponse(200, comments, "comment successfully fetched")
+        new ApiResponse(200, {videoComments, totalVideosComments}, "comment successfully fetched")
     )
 
 })
@@ -49,7 +36,7 @@ const addComment = asyncHandler(async(req,res) => {
     const newComment = await Comment.create(
         {
             content: comment,
-            videoId,
+            video: videoId,
             owner,
         }
     )
