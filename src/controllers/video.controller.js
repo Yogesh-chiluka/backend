@@ -1,5 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
+import {User} from "../models/user.models.js"
 
 import { ApiResponse } from "../utils/ApiResponse.js"
 import {uploadOnCloudinary,
@@ -29,27 +30,28 @@ const getAllVideos = asyncHandler(async(req, res) => {
     const videos = await Video.find(queryObject).skip(skip).limit(limit).sort(sortOptions);
     const totalVideos = await Video.countDocuments(queryObject); // Get total count for pagination
 
-    res.status(200).json({ videos, totalVideos }); // Send response with videos and total count
+    res.status(200).json(
+        new ApiResponse(200,{ videos, totalVideos },"Videos successfully fetched")
+    ); // Send response with videos and total count
 });
 
 const publishAVideo = asyncHandler(async(req,res) => {
     const { title, description} = req.body
-
+   
     const videoLocalPath = req.files?.videoFile[0]?.path;
     const thumbnailLocalPath = req.files?.thumbnail[0]?.path;
 
     if(!(videoLocalPath && thumbnailLocalPath)){
         throw new ApiError(400,"Video and Thumbnail is required")
     }
-
+ 
     const videoFile = await uploadOnCloudinary(videoLocalPath)
    
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
 
-    const url = videoFile.url
+    // const url = videoFile.url
 
-    const filename = url.split('/').pop().split('.')[0]
-
+    // const filename = url.split('/').pop().split('.')[0]
 
     if(!videoFile.url){
         throw new ApiError(400, "Error while uploading on video")
@@ -63,7 +65,8 @@ const publishAVideo = asyncHandler(async(req,res) => {
         thumbnail:  thumbnail.url,
         title: title,
         description: description,
-        duration: videoFile.duration
+        duration: videoFile.duration,
+        owner: req.user._id
     })
 
     if(!video){
@@ -114,7 +117,7 @@ const updateVideo =  asyncHandler(async(req,res) => {
 const deleteVideo = asyncHandler(async(req,res) => {
     const {videoId} = req.params
 
-    const video = Video.findById(videoId)
+    const video = await Video.findById(videoId)
 
     const  videoUrl = video.videoFile
 
@@ -123,7 +126,7 @@ const deleteVideo = asyncHandler(async(req,res) => {
     //console.log("file name: " +filename+ " type:"+type )
     await destroyOnCloudinary(filename,type)
 
-    Video.deleteById(videoId)
+    await Video.findByIdAndDelete(videoId)
 
     return res.status(200).json(
         new ApiResponse(200,"Video is successfully deleted")
@@ -161,7 +164,9 @@ const togglePublishStatus =  asyncHandler(async(req,res) => {
         }
     )
     console.log(video.isPublished)
-    res.status(200).json(200,published? "Published":"unpublished")
+    res.status(200).json(
+        new ApiResponse(200,published? "Published":"unpublished")
+    )
 })
 
 

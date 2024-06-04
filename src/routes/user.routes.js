@@ -65,14 +65,5 @@ router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
 
 router.route("/history").get(verifyJWT, getWatchHistory)
 
-//Test
-router.route('/delete').post(
-    upload.fields([
-    {
-        name:"avatar",
-        maxCount:1
-    }]),
-    verifyJWT,
-    updateUserAvatar)
 
 export default router 
