@@ -128,7 +128,7 @@ const loginUser = asyncHandler(async (req,res) => {
     if(!isPasswordValid){
         throw new ApiError(401,"Invalid user credentials")
     }
-    console.log("start generatig token ---------------------------")
+    //console.log("start generatig token ---------------------------")
     const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
     
 
@@ -292,7 +292,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
 })
 
 const updateUserAvatar = asyncHandler( async(req, res) => {
-    const avatarLocalPath = req.files?.avatar[0]?.path
+    const avatarLocalPath = req.file?.path
 
     if(!avatarLocalPath){
         throw new ApiError(400, "Avatar file is missing")
@@ -301,8 +301,9 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
     const userdestroy = await User.findById(req.user._id).select("-password -refreshtoken")
 
     const filename = userdestroy.avatar.split('/').pop().split('.')[0]
-
-    await destroyOnCloudinary(filename)
+    const type = userdestroy.avatar.split('/').pop().split('.')[1]
+    
+    await destroyOnCloudinary(filename,type)
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
@@ -323,12 +324,12 @@ const updateUserAvatar = asyncHandler( async(req, res) => {
     res
     .status(200)
     .json(
-        new ApiResponse(200,user,"Avatar successfully updated")
+        new ApiResponse(200, userupdate,"Avatar successfully updated")
     )
 })
 
 const updateUserCoverImage = asyncHandler( async(req, res) => {
-    const coverImageLocalPath = req.files?.avatar[0]?.path
+    const coverImageLocalPath = req.file?.path
 
     if(!coverImageLocalPath){
         throw new ApiError(400, "Avatar file is missing")
@@ -337,8 +338,9 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
     const userdestroy = await User.findById(req.user._id).select("-password -refreshtoken")
 
     const filename = userdestroy.coverImage.split('/').pop().split('.')[0]
+    const type = userdestroy.coverImage.split('/').pop().split('.')[1]
 
-    await destroyOnCloudinary(filename)
+    await destroyOnCloudinary(filename,type)
 
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
