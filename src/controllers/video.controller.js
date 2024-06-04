@@ -135,7 +135,7 @@ const deleteVideo = asyncHandler(async(req,res) => {
 
 const getVideoById = asyncHandler(async(req,res) => {
     const {videoId} = req.params
-    console.log(videoId)
+ 
     const video = await Video.findById(videoId)
 
 
