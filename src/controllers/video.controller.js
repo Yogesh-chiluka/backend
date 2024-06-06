@@ -7,6 +7,7 @@ import {uploadOnCloudinary,
     destroyOnCloudinary }from "../utils/cloudinary.js"
 import { Video } from "../models/video.models.js"
 import mongoose, { isValidObjectId } from "mongoose"
+import { getWatchHistory } from "./user.controllers.js"
 
 const getAllVideos = asyncHandler(async(req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -274,12 +275,153 @@ const getVideoById = asyncHandler(async(req,res) => {
     if(!isValidObjectId(videoId)){
         throw new ApiError(400, "Invalid videoId")
     }
- 
-    const video = await Video.findById(videoId)
 
+    if(!isValidObjectId(req.user._id)){
+        throw new ApiError(400, "Invalid userId")
+    }
+
+    const videoExist = await Video.findById(videoId)
+
+    if(!videoExist){
+        throw new ApiError(400, "Video dosen't exist")
+    }
+
+ 
+    const videoDetails = await Video.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $lookup:{
+                            from: "subscriptions",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribers"
+                        }
+                    },
+                    {
+                        $addFields: {
+                            subscribersCount: {
+                                $size: "$subscribers"
+                            },
+                            isSubscribed: {
+                                $cond: {
+                                    if: {
+                                        $in: [
+                                            req.user?._id, // Value to check if it exists in the array
+                                            "$subscribers.subscriber" // Array field to check against
+                                        ]
+                                    },
+                                    then: true, // Value if condition is true
+                                    else: false // Value if condition is false
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1,
+                            subscribersCount: 1,
+                            isSubscribed: 1
+                        }
+                    }
+                ]
+            }   
+        },
+        {
+            $addFields: {
+                likesCount: {
+                    $size: "$likes"
+                },
+                owner:{
+                        $first: "$owner"
+                },
+                isLiked: {
+                    $cond: {
+                        if: {
+                            $in: [
+                                req.user._id, // Value to check if it exists in the array
+                                "$likes.likedBy" // Array field to check against
+                            ]
+                        },
+                        then: true, // Value if condition is true
+                        else: false // Value if condition is false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                views: 1,
+                duration: 1,
+                owner: 1,
+                createdAt: 1,
+                likesCount: 1,
+                isLiked: 1
+            }
+        }
+        
+    ])
+
+    if(!videoDetails){
+        throw new ApiError(400,"Error while fetching video details")
+    }
+
+    // Increment view count on video only when video is fetched by other than owner
+
+    if(!(videoId.toString() === req.user._id.toString())){
+        const updateView = await Video.updateOne(
+                {
+                    _id: videoId
+                },
+                {
+                    $inc: {
+                        views: 1
+                    }
+                }
+            )
+
+        if(!updateView){
+            throw new ApiError(400, "Error while updating view")
+        }
+    }
+
+    //add this to user watch history
+    await User.updateOne(
+        {
+            _id: req.user._id
+        },
+        {
+            $push: {
+                watchhistory: videoId
+            }
+        }
+    )
 
     return res.status(200).json(
-        new ApiResponse(200,video,"Video successfully loaded by Id")
+        new ApiResponse(200,videoDetails,"Video successfully loaded by Id")
     )
 })
 
