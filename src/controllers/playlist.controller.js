@@ -272,7 +272,7 @@ const deletePlaylist = asyncHandler(async(req,res) => {
     const isValidated = validateFields(playlistId)
     
     if(!isValidated){
-        throw new ApiError(400,"PlaylistId is required")
+        throw new ApiError(400,"playlistId is required")
     }
 
     if(!isValidObjectId(playlistId)){
@@ -283,6 +283,10 @@ const deletePlaylist = asyncHandler(async(req,res) => {
 
     if(!playlistExist){
         throw new ApiError(400, "Playllist doesn't exist or deleted")
+    }
+
+    if(playlistExist.owner.toString() !== req.user._id.toString()){
+        throw new ApiError(400, "Only owner can delete playlist")
     }
 
     const isPlaylistDeleted = await Playlist.findByIdAndDelete(playlistId)
@@ -313,6 +317,10 @@ const removeVideoFromPlaylist = asyncHandler(async(req,res) => {
 
     if(!playlistExist){
         throw new ApiError(400, "playlist doesnot exist")
+    }
+
+    if(playlistExist.owner.toString() !== req.user._id.toString()){
+        throw new ApiError(400, "Only owner can remove video playlist")
     }
 
     const videoExistInPlaylist = await Playlist.findOne({_id:playlistExist._id, video:videoId})
@@ -362,6 +370,10 @@ const updatePlaylist = asyncHandler(async(req,res) => {
 
     if(!playlistExist){
         throw new ApiError(400, "Playlist dosen't exist")
+    }
+
+    if(playlistExist.owner.toString() !== req.user._id.toString()){
+        throw new ApiError(400, "Only owner can update playlist")
     }
 
     const updatePlaylist = await Playlist.updateOne(
